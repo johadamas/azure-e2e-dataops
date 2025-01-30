@@ -12,3 +12,5 @@ crash.log
 _secrets.txt
 terraform.tfvars
 _azure-pipelines.txt
+azure-pipelines.yml
+release-pipelines.yml
