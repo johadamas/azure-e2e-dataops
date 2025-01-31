@@ -13,4 +13,4 @@ _secrets.txt
 terraform.tfvars
 _azure-pipelines.txt
 azure-pipelines.yml
-release-pipelines.yml
+release-pipeline.yml
