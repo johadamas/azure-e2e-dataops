@@ -14,51 +14,48 @@
 ## Project Overview
 This project builds upon my previously created [Databricks ETL Pipeline with Auto Loader](https://github.com/johadamas/coffeeshop-e2e-pipeline.git). It extends the functionality by integrating Azure DevOps CI/CD pipelines to automate the deployment of Terraform configurations and Databricks notebooks. This ensures consistent infrastructure provisioning and workflow updates whenever changes are committed to the repository.
 
-### A. Azure Pipeline Flows
-![Pipeline Flow](/images/_DataOps-CICD.png "Azure Pipelines")
+**A. Azure Pipeline Flows:**
+- **CI/CD Pipeline Architecture**:
 
-#### **Build Pipeline (`azure-pipelines.yml`)**
-**Pipeline Stages:**
+    ![Pipeline Flow](/images/_DataOps-CICD.png "Azure Pipelines")
 
-- **Terraform Init**:
-  Configures Terraform and sets up the backend for state storage.
+- **Build Pipeline** (`azure-pipelines.yml`):
+    - `Terraform Init`: Configures Terraform and sets up the backend for state storage
 
-- **Terraform Validate**:
-  Ensures the Terraform configuration syntax and logic are correct.
+    - `Terraform Validate`: Ensures the Terraform configuration syntax and logic are correct
 
-- **Terraform Plan**:
-  Creates a Terraform plan file that outlines the changes Terraform will make.
+    - `Terraform Plan`: Generates a plan file outlining the infrastructure changes
 
-- **Artifact Archival**:
-  Archives the plan file and other relevant files for use in the release pipeline.
+    - `Artifact Archival`: Archives the plan file and other relevant files for use in the release pipeline
 
-#### Trigger:
-- Triggered by changes to the `main` branch.
+- **Release Pipeline** (`release-pipeline.yml`):
+    - `Deploy Infrastructure`
+        - Extracts the build artifact from the CI pipeline.
 
----
+        - Installs and initializes Terraform
 
-#### **Release Pipeline (`release-pipeline.yml`)**
-**Pipeline Stages:**
+        - Deploys the required infrastructure resources
 
-- **Deploy Infrastructures**:
-  - Extracts the build artifact from the CI pipeline.
-  - Installs Terraform.
-  - Initializes Terraform and applies the plan to deploy the main infrastructure.
-  - Retries the `apply` step twice on failure for added robustness.
-  
-- **Destroy Infrastructures (Optional)**:
-  - Extracts the build artifact from the CI pipeline.
-  - Installs Terraform.
-  - Initializes Terraform and destroys the deployed resources.
-  - This stage needs approval first
+        - Retries the apply step twice on failure for added robustness
 
-#### Trigger:
-- Triggered by changes to the `main` branch.
+    - `Destroy Infrastructure` ***(Requires manual approval before execution)***
+        - Extracts the build artifact from the CI pipeline.
 
-### B. Main Infrastructures
-This project will create Databricks ETL Workflow as the Main Infrastructures with Azure DevOps CI/CD pipelines to automate the deployment of Terraform configurations and Databricks notebooks
+        - Installs and initializes Terraform
 
-![Main Infrastructures](/images/_Main-Infrastructure.png "Main Infrastructures")
+        - Destroys the deployed resources
+
+        - Retries the destroy step twice on failure for added robustness
+
+- **CI/CD Trigger**:
+    - Both the **Build** and **Release** pipeline are triggered by changes to the `main` branch
+
+
+**B. Main Infrastructures:**
+
+- This project provisions a Databricks ETL Workflow using Terraform and Azure DevOps CI/CD pipelines for automated deployment
+
+    ![Main Infrastructures](/images/_Main-Infrastructure.png "Main Infrastructures")
 
 ## Prerequisites
 1. **Azure Subscriptions**
@@ -98,269 +95,269 @@ This project will create Databricks ETL Workflow as the Main Infrastructures wit
 
 ## Get Started:
 
-### 1. Create a Project:  
-- Go to your **Azure DevOps** account and create a new project
-
-    ![](/images/1.create_project.png "")
-
-
-### 2. Import Repo:  
-- Once the project is created, import or clone the repository using the **GitHub** URL
-
-    ![](/images/2.import_repo.gif "")
-
-
-### 3. Upload .tfvars file:  
-- After successfully importing the repository, upload your `terraform.tfvars` file. It should contain the following:
+1. **Create a Project:**
+    - Go to your **Azure DevOps** account and create a new project
+
+        ![](/images/1.create_project.png "")
+
+
+2. **Import Repo:** 
+    - Once the project is created, import or clone the repository using the **GitHub** URL
+
+        ![](/images/2.import_repo.gif "")
+
+
+3. **Upload .tfvars file:**
+    - After successfully importing the repository, upload your `terraform.tfvars` file. It should contain the following:
 
-    ```hcl
-    subscription_id = "YOUR_SUBSCRIPTION_ID"
-    user_email      = "YOUR_EMAIL_ACCOUNT"
-    ```
-- Here is the detailed step in GIF:
+        ```hcl
+        subscription_id = "YOUR_SUBSCRIPTION_ID"
+        user_email      = "YOUR_EMAIL_ACCOUNT"
+        ```
+    - Here is the detailed step in GIF:
 
-    ![](/images/3.upload_tfvars.gif "")
+        ![](/images/3.upload_tfvars.gif "")
 
 
-### 4. Create Build Pipeline:  
-**A. Build Setup:**
-- Now that our `terraform.tfvars` file has been successfully uploaded, we can start creating the **Build Pipeline** using the **Starter Pipeline**
+4. **Create the Build Pipeline:**  
+- **A. Build Setup:**
 
-    ![](/images/4.setup_build.gif "")
+    - Now that our `terraform.tfvars` file has been successfully uploaded, we can start creating the **Build Pipeline** using the **Starter Pipeline**
 
-**B. Build Assistant**:
-- By default, the starter pipeline provides us with a basic setup including the **trigger, pool, and stages**. However, we still need to define the necessary tasks ourselves
+        ![](/images/4.setup_build.gif "")
 
-- To create the required tasks, we can use the **Build Assistant** to help construct our `azure-pipelines.yml` file
+- **B. Build Assistant:**
+    - By default, the starter pipeline provides us with a basic setup including the **trigger, pool, and stages**. However, we still need to define the necessary tasks ourselves
 
-    ![](/images/5.build_yaml.gif "")
+    - To create the required tasks, we can use the **Build Assistant** to help construct our `azure-pipelines.yml` file
 
-**C. Complete azure-pipelines.yml File**:
-- Here is the full YAML configuration:
+        ![](/images/5.build_yaml.gif "")
 
-    ```yaml
-    trigger:
-    - main
+- **C. Complete azure-pipelines.yml File:**
+    - Here is the full YAML configuration:
 
-    pool:
-    vmImage: 'ubuntu-latest'  # Microsoft-hosted agent
+        ```yaml
+        trigger:
+        - main
 
-    stages:
-    - stage: Build
-        jobs:
-        - job: Build
-            pool:
-            vmImage: 'ubuntu-latest'  # Microsoft-hosted agent
-            steps:
-            - checkout: self
+        pool:
+        vmImage: 'ubuntu-latest'  # Microsoft-hosted agent
 
-            - task: TerraformTaskV4@4
-            displayName: Terraform Init
-            inputs:
-                provider: 'azurerm'
-                command: 'init'
-                backendServiceArm: 'YOUR_SUBSCRIPTION_ID'
-                backendAzureRmResourceGroupName: 'YOUR_BACKEND_RESOURCE_GROUP_NAME'
-                backendAzureRmStorageAccountName: 'YOUR_BACKEND_STORAGE_ACCOUNT_NAME'
-                backendAzureRmContainerName: 'YOUR_BACKEND_STORAGE_CONTAINER_NAME'
-                backendAzureRmKey: 'YOUR_BACKEND_TFSTATE_KEY_NAME'
+        stages:
+        - stage: Build
+            jobs:
+            - job: Build
+                pool:
+                vmImage: 'ubuntu-latest'  # Microsoft-hosted agent
+                steps:
+                - checkout: self
 
-            - task: TerraformTaskV4@4
-            displayName: Terraform Validate
-            inputs:
-                provider: 'azurerm'
-                command: 'validate'
-            
-            - task: TerraformTaskV4@4
-            displayName: Terraform Plan
-            inputs:
-                provider: 'azurerm'
-                command: 'plan'
-                commandOptions: '-out $(Build.SourcesDirectory)/tfplanfile'
-                environmentServiceNameAzureRM: 'YOUR_SUBSCRIPTION_ID'
-            
-            - task: ArchiveFiles@2
-            displayName: Archiving Artifact
-            inputs:
-                rootFolderOrFile: '$(Build.SourcesDirectory)/'
-                includeRootFolder: false
-                archiveType: 'zip'
-                archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
-                replaceExistingArchive: true
+                - task: TerraformTaskV4@4
+                displayName: Terraform Init
+                inputs:
+                    provider: 'azurerm'
+                    command: 'init'
+                    backendServiceArm: 'YOUR_SUBSCRIPTION_ID'
+                    backendAzureRmResourceGroupName: 'YOUR_BACKEND_RESOURCE_GROUP_NAME'
+                    backendAzureRmStorageAccountName: 'YOUR_BACKEND_STORAGE_ACCOUNT_NAME'
+                    backendAzureRmContainerName: 'YOUR_BACKEND_STORAGE_CONTAINER_NAME'
+                    backendAzureRmKey: 'YOUR_BACKEND_TFSTATE_KEY_NAME'
 
-            - task: PublishBuildArtifacts@1
-            displayName: Publishing Artifact
-            inputs:
-                PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-                ArtifactName: '$(Build.BuildId)-build'
-                publishLocation: 'Container'
-    ```
+                - task: TerraformTaskV4@4
+                displayName: Terraform Validate
+                inputs:
+                    provider: 'azurerm'
+                    command: 'validate'
+                
+                - task: TerraformTaskV4@4
+                displayName: Terraform Plan
+                inputs:
+                    provider: 'azurerm'
+                    command: 'plan'
+                    commandOptions: '-out $(Build.SourcesDirectory)/tfplanfile'
+                    environmentServiceNameAzureRM: 'YOUR_SUBSCRIPTION_ID'
+                
+                - task: ArchiveFiles@2
+                displayName: Archiving Artifact
+                inputs:
+                    rootFolderOrFile: '$(Build.SourcesDirectory)/'
+                    includeRootFolder: false
+                    archiveType: 'zip'
+                    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+                    replaceExistingArchive: true
 
+                - task: PublishBuildArtifacts@1
+                displayName: Publishing Artifact
+                inputs:
+                    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+                    ArtifactName: '$(Build.BuildId)-build'
+                    publishLocation: 'Container'
+        ```
 
-### 5. Build Pipeline Run:
-**A. Start the Build Pipeline:**
-- After the `azure-pipelines.yml` is complete, save and run the pipeline
+5. **Build Pipeline Run:**
+- **A. Start the Build Pipeline:**
+    - After the `azure-pipelines.yml` is complete, save and run the pipeline
 
-- Before the jobs run, you must grant access to the service connection used to start the build pipeline
+    - Before the jobs run, you must grant access to the service connection used to start the build pipeline
 
-    ![](/images/6.run_build.gif "")
+        ![](/images/6.run_build.gif "")
 
-**B. Build Pipeline Complete:**
-- Once the build pipeline completes successfully, you will see green checkmarks on the left-hand side, indicating that all tasks have executed correctly
+- **B. Build Pipeline Complete:**
+    - Once the build pipeline completes successfully, you will see green checkmarks on the left-hand side, indicating that all tasks have executed correctly
 
-- The pipeline will also generate an `artifact`, which will be used later to create the **Release Pipeline**
+    - The pipeline will also generate an `artifact`, which will be used later to create the **Release Pipeline**
 
-    ![](/images/8.finish_build.gif "")
+        ![](/images/8.finish_build.gif "")
 
 
-**C. Terraform Plan Output:**
-- Below is an example of the `terraform plan` output, showing 24 resources that will be created as part of our main infrastructure
+- **C. Terraform Plan Output:**
+    - Below is an example of the `terraform plan` output, showing 24 resources that will be created as part of our main infrastructure
 
-    ![](/images/9.build_tf_plan.png "")
+        ![](/images/9.build_tf_plan.png "")
 
 
-### 6. Create Release Pipeline: 
-**A. Pipeline Setup:**
-- To create the **Release Pipeline**, we first need to add the artifact generated by the **Build Pipeline**. This artifact will serve as the source for our deployment
+6. **Create the Release Pipeline:**
+- **A. Pipeline Setup:**
+    - To create the **Release Pipeline**, we first need to add the artifact generated by the **Build Pipeline**. This artifact will serve as the source for our deployment
 
-- Once the artifact is added, we can enable the **Continuous Deployment (CD) trigger**
+    - Once the artifact is added, we can enable the **Continuous Deployment (CD) trigger**
 
-- The CD trigger will automatically execute the release pipeline whenever there are **new changes** or a **new build** on the default branch
+    - The CD trigger will automatically execute the release pipeline whenever there are **new changes** or a **new build** on the default branch
 
-    ![](/images/10.setup_release.gif "")
+        ![](/images/10.setup_release.gif "")
 
-**B. Deploy Stage:**
+- **B. Deploy Stage:**
 
-This stage consists of **1 job and 4 tasks**. The Agent job will automatically download the artifact generated in the **Build Pipeline**
+    This stage consists of **1 job and 4 tasks**. The Agent job will automatically download the artifact generated in the **Build Pipeline**
 
-- `Extract Files`: This task extracts the archived **Build Artifact**, making it available for deployment
+    - `Extract Files`: This task extracts the archived **Build Artifact**, making it available for deployment
 
-    ![](/images/11.deploy_extract.gif "")
+        ![](/images/11.deploy_extract.gif "")
 
-- `Install Terraform`: Installs Terraform inside the agent. Here, we specify version 1.9.8 to match the version used in my previously created [Databricks ETL Pipeline with Auto Loader](https://github.com/johadamas/coffeeshop-e2e-pipeline.git)
+    - `Install Terraform`: Installs Terraform inside the agent. Here, we specify version 1.9.8 to match the version used in my previously created [Databricks ETL Pipeline with Auto Loader](https://github.com/johadamas/coffeeshop-e2e-pipeline.git)
 
-    ![](/images/12.deploy_install_tf.gif "")
+        ![](/images/12.deploy_install_tf.gif "")
 
-- `Terraform Init`: Initializes Terraform by connecting to **Azure Subscriptions** (or **Service Connection**) and the **Backend Infrastructure** (Storage Account to store `tfstate` files)
+    - `Terraform Init`: Initializes Terraform by connecting to **Azure Subscriptions** (or **Service Connection**) and the **Backend Infrastructure** (Storage Account to store `tfstate` files)
 
-    ![](/images/13.deploy_tf_init.gif "")
+        ![](/images/13.deploy_tf_init.gif "")
 
-- `Terraform Apply`: Applies the Terraform configuration to provision the **Main Infrastructure**. The `--auto-approve` flag must be added to **Additional Command Arguments**, otherwise, the process will require manual approval and won’t execute automatically
+    - `Terraform Apply`: Applies the Terraform configuration to provision the **Main Infrastructure**. The `--auto-approve` flag must be added to **Additional Command Arguments**, otherwise, the process will require manual approval and won’t execute automatically
 
-    ![](/images/13.deploy_tf_apply.png "")
+        ![](/images/13.deploy_tf_apply.png "")
 
-- `Apply Retries`: I’ve added 2 retries for this task because Terraform occasionally fails to upload Databricks notebooks due to transient issues
+    - `Apply Retries`: I’ve added 2 retries for this task because Terraform occasionally fails to upload Databricks notebooks due to transient issues
 
-    ![](/images/13.deploy_tf_apply2.png "")
+        ![](/images/13.deploy_tf_apply2.png "")
 
-**C. Destroy Stage:**
+- **C. Destroy Stage:**
 
-This stage consists of one job and four tasks, following the same structure as the Deploy Stage, but with key modifications:
+    This stage consists of one job and four tasks, following the same structure as the Deploy Stage, but with key modifications:
 
-- `Clone the Deploy Stage`: Instead of creating a new stage manually we can clone the Deploy Stage for efficiency, simply by clicking on the **Clone** tab
+    - `Clone the Deploy Stage`: Instead of creating a new stage manually we can clone the Deploy Stage for efficiency, simply by clicking on the **Clone** tab
 
-    ![](/images/14.clone_stage.gif "")
+        ![](/images/14.clone_stage.gif "")
 
-- `Terraform Destroy`: Replace the **Terraform Apply** task with **Terraform Destroy** to tear down the infrastructure
+    - `Terraform Destroy`: Replace the **Terraform Apply** task with **Terraform Destroy** to tear down the infrastructure
 
-    ![](/images/15.destroy_stage_retry.png "")
+        ![](/images/15.destroy_stage_retry.png "")
 
-- `Destroy Stage Trigger`: To ensures that the Destroy Stage **only executes with explicit approval**
+    - `Destroy Stage Trigger`: To ensures that the Destroy Stage **only executes with explicit approval**
 
-    ![](/images/15.destroy_stage_trigger.gif "")
+        ![](/images/15.destroy_stage_trigger.gif "")
 
-**D. Complete release-pipelines.yml File**:
-- Here is the full YAML configuration:
+- **D. Complete release-pipelines.yml File**:
+    
+    - Here is the full YAML configuration:
 
-    ```yaml
-    # Deploy Infrastructures Stage
-    # Extract Files
-    steps:
-    - task: ExtractFiles@1
-    displayName: 'Extract files '
-    inputs:
-        archiveFilePatterns: '_$(Build.DefinitionName)/$(Build.BuildId)-build/$(Build.BuildId).zip'
-        destinationFolder: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
+        ```yaml
+        # Deploy Infrastructures Stage
+        # Extract Files
+        steps:
+        - task: ExtractFiles@1
+        displayName: 'Extract files '
+        inputs:
+            archiveFilePatterns: '_$(Build.DefinitionName)/$(Build.BuildId)-build/$(Build.BuildId).zip'
+            destinationFolder: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
 
-    # Install Terraform
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@1
-    displayName: 'Install Terraform v1.9.8'
-    inputs:
-        terraformVersion: 1.9.8
+        # Install Terraform
+        steps:
+        - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@1
+        displayName: 'Install Terraform v1.9.8'
+        inputs:
+            terraformVersion: 1.9.8
 
-    # Terraform Init
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
-    displayName: 'Terraform : init'
-    inputs:
-        workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
-        backendAzureRmUseEnvironmentVariablesForAuthentication: false
-        backendAzureRmUseEntraIdForAuthentication: false
-        backendServiceArm: 'YOUR_SUBSCRIPTION_ID'
-        backendAzureRmResourceGroupName: 'YOUR_BACKEND_RESOURCE_GROUP_NAME'
-        backendAzureRmStorageAccountName: 'YOUR_BACKEND_STORAGE_ACCOUNT_NAME'
-        backendAzureRmContainerName: 'YOUR_BACKEND_STORAGE_CONTAINER_NAME'
-        backendAzureRmKey: 'YOUR_BACKEND_TFSTATE_KEY_NAME'
+        # Terraform Init
+        steps:
+        - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
+        displayName: 'Terraform : init'
+        inputs:
+            workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
+            backendAzureRmUseEnvironmentVariablesForAuthentication: false
+            backendAzureRmUseEntraIdForAuthentication: false
+            backendServiceArm: 'YOUR_SUBSCRIPTION_ID'
+            backendAzureRmResourceGroupName: 'YOUR_BACKEND_RESOURCE_GROUP_NAME'
+            backendAzureRmStorageAccountName: 'YOUR_BACKEND_STORAGE_ACCOUNT_NAME'
+            backendAzureRmContainerName: 'YOUR_BACKEND_STORAGE_CONTAINER_NAME'
+            backendAzureRmKey: 'YOUR_BACKEND_TFSTATE_KEY_NAME'
 
-    # Terraform Apply
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
-    displayName: 'Terraform : apply'
-    inputs:
-        command: apply
-        workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
-        environmentServiceNameAzureRM: 'YOUR_SUBSCRIPTION_ID'
-        backendAzureRmUseEnvironmentVariablesForAuthentication: false
-        backendAzureRmUseEntraIdForAuthentication: false
-    retryCountOnTaskFailure: 2
+        # Terraform Apply
+        steps:
+        - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
+        displayName: 'Terraform : apply'
+        inputs:
+            command: apply
+            workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
+            environmentServiceNameAzureRM: 'YOUR_SUBSCRIPTION_ID'
+            backendAzureRmUseEnvironmentVariablesForAuthentication: false
+            backendAzureRmUseEntraIdForAuthentication: false
+        retryCountOnTaskFailure: 2
 
 
-    # Destroy Infrastructures Stage
-    # Extract Files
-    steps:
-    - task: ExtractFiles@1
-    displayName: 'Extract files '
-    inputs:
-        archiveFilePatterns: '_$(Build.DefinitionName)/$(Build.BuildId)-build/$(Build.BuildId).zip'
-        destinationFolder: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
+        # Destroy Infrastructures Stage
+        # Extract Files
+        steps:
+        - task: ExtractFiles@1
+        displayName: 'Extract files '
+        inputs:
+            archiveFilePatterns: '_$(Build.DefinitionName)/$(Build.BuildId)-build/$(Build.BuildId).zip'
+            destinationFolder: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
 
-    # Install Terraform
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@1
-    displayName: 'Install Terraform v1.9.8'
-    inputs:
-        terraformVersion: 1.9.8
+        # Install Terraform
+        steps:
+        - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@1
+        displayName: 'Install Terraform v1.9.8'
+        inputs:
+            terraformVersion: 1.9.8
 
-    # Terraform Init
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
-    displayName: 'Terraform : init'
-    inputs:
-        workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
-        backendAzureRmUseEnvironmentVariablesForAuthentication: false
-        backendAzureRmUseEntraIdForAuthentication: false
-        backendServiceArm: 'YOUR_SUBSCRIPTION_ID'
-        backendAzureRmResourceGroupName: 'YOUR_BACKEND_RESOURCE_GROUP_NAME'
-        backendAzureRmStorageAccountName: 'YOUR_BACKEND_STORAGE_ACCOUNT_NAME'
-        backendAzureRmContainerName: 'YOUR_BACKEND_STORAGE_CONTAINER_NAME'
-        backendAzureRmKey: 'YOUR_BACKEND_TFSTATE_KEY_NAME'
+        # Terraform Init
+        steps:
+        - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
+        displayName: 'Terraform : init'
+        inputs:
+            workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
+            backendAzureRmUseEnvironmentVariablesForAuthentication: false
+            backendAzureRmUseEntraIdForAuthentication: false
+            backendServiceArm: 'YOUR_SUBSCRIPTION_ID'
+            backendAzureRmResourceGroupName: 'YOUR_BACKEND_RESOURCE_GROUP_NAME'
+            backendAzureRmStorageAccountName: 'YOUR_BACKEND_STORAGE_ACCOUNT_NAME'
+            backendAzureRmContainerName: 'YOUR_BACKEND_STORAGE_CONTAINER_NAME'
+            backendAzureRmKey: 'YOUR_BACKEND_TFSTATE_KEY_NAME'
 
-    # Terraform Destroy
-    steps:
-    - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
-    displayName: 'Terraform : destroy'
-    inputs:
-        command: destroy
-        workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
-        environmentServiceNameAzureRM: 'YOUR_SUBSCRIPTION_ID'
-        backendAzureRmUseEnvironmentVariablesForAuthentication: false
-        backendAzureRmUseEntraIdForAuthentication: false
-    retryCountOnTaskFailure: 2
-    ```
+        # Terraform Destroy
+        steps:
+        - task: ms-devlabs.custom-terraform-tasks.custom-terraform-release-task.TerraformTaskV4@4
+        displayName: 'Terraform : destroy'
+        inputs:
+            command: destroy
+            workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.BuildId)-build'
+            environmentServiceNameAzureRM: 'YOUR_SUBSCRIPTION_ID'
+            backendAzureRmUseEnvironmentVariablesForAuthentication: false
+            backendAzureRmUseEntraIdForAuthentication: false
+        retryCountOnTaskFailure: 2
+        ```
 
-## CI/CD Pipeline Test:
-
+## CI/CD Pipeline Test
 In this section, we will test our **end-to-end CI/CD pipeline** by making a small change in the Git repository to trigger the workflow
 
 **A. Build Pipeline (CI):**
@@ -401,8 +398,7 @@ In this section, we will test our **end-to-end CI/CD pipeline** by making a smal
     ![](/images/20.cicd_deploy2.gif "")
 
 
-## Main Infrastructures Test: 
-
+## Main Infrastructures Test
 In this section, we will test the **Main Infrastructure**, which consists of the **Databricks ETL Pipeline**, starting from data generation to validation
 
 **Generate Fake Data :**
@@ -430,7 +426,7 @@ In this section, we will test the **Main Infrastructure**, which consists of the
 
     ![](/images/25.etl_test_2.png "")
 
-## Destroy Infrastructures:
+## Destroy Infrastructures
 
 In this section, we will execute the **Destroy Stage** to tear down our Main Infrastructures from our **Release Pipeline**, following a step-by-step approach
 
@@ -445,11 +441,11 @@ In this section, we will execute the **Destroy Stage** to tear down our Main Inf
 
     ![](/images/26.cicd_destroy2.gif "")
 
-- The screenshot below shows that the Release Pipeline successfully completed, even though the Terraform Destroy task encountered an error
+- The screenshot below shows that the **Release Pipeline successfully completed**, even though the Terraform Destroy task encountered an error
 
     ![](/images/27.destroy_error_1.png "")
 
-- The error message states that Terraform failed to purge Azure Key Vault secrets
+- The error message states that **Terraform failed to purge Azure Key Vault secrets**
 
     ![](/images/27.destroy_error_2.png "")
 
@@ -457,7 +453,7 @@ In this section, we will execute the **Destroy Stage** to tear down our Main Inf
 
     ![](/images/28.destroy_finish.png "")
 
-## Project Summary: 
+## Conclusion
 Our CI/CD pipeline performed effectively, despite encountering some errors. However, we successfully mitigated these issues by implementing retry mechanisms, ensuring pipeline stability
 
 Overall, the pipeline is well-optimized, achieving:
@@ -467,8 +463,6 @@ Overall, the pipeline is well-optimized, achieving:
     ![](/images/29.project_stats.png "")
 
 ## Troubleshooting
-### Common Issues and Solutions
-
 1. **Terraform-related notebooks (e.g., uploading Databricks notebooks, purging Key Vault secrets, or permission issues)**
 
    - **Solution**: Ensure the user folder is not protected or add retries to the pipeline
